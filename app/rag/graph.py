@@ -1,6 +1,6 @@
 """LangGraph pipeline wiring the RAG stages into a state machine:
-hyde -> hybrid_search -> rerank -> grade (CRAG) -> generate -> reflect (Self-RAG).
-The graph degrades gracefully so it runs end to end without Azure keys."""
+hyde -> retrieve -> rerank -> crag -> generate -> reflect.
+Degrades gracefully so it runs end to end."""
 from typing import TypedDict
 from app.rag.retrieval import hybrid_search
 from app.rag.rerank import rerank
@@ -39,7 +39,7 @@ def node_rerank(state: RAGState) -> RAGState:
     return state
 
 
-def node_grade(state: RAGState) -> RAGState:
+def node_crag(state: RAGState) -> RAGState:
     state["grade"] = grade_context(state["query"], state["context"])
     return state
 
@@ -64,14 +64,14 @@ def build_graph():
     g.add_node("hyde", node_hyde)
     g.add_node("retrieve", node_retrieve)
     g.add_node("rerank", node_rerank)
-    g.add_node("grade", node_grade)
+    g.add_node("crag", node_crag)
     g.add_node("generate", node_generate)
     g.add_node("reflect", node_reflect)
     g.set_entry_point("hyde")
     g.add_edge("hyde", "retrieve")
     g.add_edge("retrieve", "rerank")
-    g.add_edge("rerank", "grade")
-    g.add_edge("grade", "generate")
+    g.add_edge("rerank", "crag")
+    g.add_edge("crag", "generate")
     g.add_edge("generate", "reflect")
     g.add_edge("reflect", END)
     return g.compile()
